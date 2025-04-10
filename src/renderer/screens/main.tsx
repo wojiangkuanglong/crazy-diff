@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 
 import {} from 'renderer/components/ui/alert';
 import { useDiffStore } from '../../shared/store/diffStore';
@@ -8,11 +8,16 @@ import { FolderSelector } from '../components/FolderSelector';
 
 const { App } = window;
 
-export function MainScreen() {
+/**
+ * 主屏幕组件 - 应用的主界面
+ * @returns {JSX.Element} 渲染的主屏幕
+ */
+export const MainScreen = memo(function MainScreen() {
   const [isLeftLoading, setIsLeftLoading] = useState(false);
   const [isRightLoading, setIsRightLoading] = useState(false);
   const { leftTree, rightTree, selectedFile, setSelectedFile } = useDiffStore();
 
+  // 初始化
   useEffect(() => {
     App.sayHelloFromBridge();
   }, []);
@@ -30,35 +35,53 @@ export function MainScreen() {
     }
   }, [rightTree]);
 
-  // 当开始获取左侧文件树时设置加载状态
-  const handleLeftFolderLoading = (loading: boolean) => {
+  /**
+   * 当开始获取左侧文件树时设置加载状态
+   * @param {boolean} loading - 是否正在加载
+   */
+  const handleLeftFolderLoading = useCallback((loading: boolean) => {
     setIsLeftLoading(loading);
-  };
+  }, []);
 
-  // 当开始获取右侧文件树时设置加载状态
-  const handleRightFolderLoading = (loading: boolean) => {
+  /**
+   * 当开始获取右侧文件树时设置加载状态
+   * @param {boolean} loading - 是否正在加载
+   */
+  const handleRightFolderLoading = useCallback((loading: boolean) => {
     setIsRightLoading(loading);
-  };
+  }, []);
 
-  // 处理左侧文件选择
-  const handleLeftFileSelect = (path: string) => {
-    // 先清空选中的文件，确保状态变化
-    setSelectedFile('left', null);
-    // 然后设置新的选中文件
-    setTimeout(() => {
-      setSelectedFile('left', path);
-    }, 0);
-  };
+  /**
+   * 处理左侧文件选择
+   * @param {string} path - 选中的文件路径
+   */
+  const handleLeftFileSelect = useCallback(
+    (path: string) => {
+      // 先清空选中的文件，确保状态变化
+      setSelectedFile('left', null);
+      // 然后设置新的选中文件
+      setTimeout(() => {
+        setSelectedFile('left', path);
+      }, 0);
+    },
+    [setSelectedFile],
+  );
 
-  // 处理右侧文件选择
-  const handleRightFileSelect = (path: string) => {
-    // 先清空选中的文件，确保状态变化
-    setSelectedFile('right', null);
-    // 然后设置新的选中文件
-    setTimeout(() => {
-      setSelectedFile('right', path);
-    }, 0);
-  };
+  /**
+   * 处理右侧文件选择
+   * @param {string} path - 选中的文件路径
+   */
+  const handleRightFileSelect = useCallback(
+    (path: string) => {
+      // 先清空选中的文件，确保状态变化
+      setSelectedFile('right', null);
+      // 然后设置新的选中文件
+      setTimeout(() => {
+        setSelectedFile('right', path);
+      }, 0);
+    },
+    [setSelectedFile],
+  );
 
   return (
     <main className="flex flex-col h-screen p-4 gap-4 relative">
@@ -103,4 +126,4 @@ export function MainScreen() {
       </div>
     </main>
   );
-}
+});

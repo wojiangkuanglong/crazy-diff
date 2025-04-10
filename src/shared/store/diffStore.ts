@@ -2,6 +2,10 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { FileDiff, FolderInfo, RecentFolder } from '../types/diff';
 
+/**
+ * 差异比较状态接口
+ * @interface DiffState
+ */
 interface DiffState {
   // 选中的文件夹
   leftFolder: string | null;
@@ -40,7 +44,12 @@ interface DiffState {
   setFileFilters: (filters: { include: string[]; exclude: string[] }) => void;
 }
 
-// 在文件树中查找指定路径的文件
+/**
+ * 在文件树中查找指定路径的文件
+ * @param {FolderInfo|null} tree - 文件树结构
+ * @param {string} path - 要查找的文件路径
+ * @returns {boolean} 是否找到文件
+ */
 const findFileInTree = (tree: FolderInfo | null, path: string): boolean => {
   if (!tree) return false;
 
@@ -66,7 +75,12 @@ const findFileInTree = (tree: FolderInfo | null, path: string): boolean => {
   return false;
 };
 
-// 获取相对路径
+/**
+ * 获取相对路径
+ * @param {string} fullPath - 完整文件路径
+ * @param {string|null} basePath - 基础路径
+ * @returns {string|null} 相对路径，如果无法获取则返回null
+ */
 const getRelativePath = (fullPath: string, basePath: string | null): string | null => {
   if (!basePath || !fullPath.startsWith(basePath)) return null;
 
@@ -81,6 +95,9 @@ const getRelativePath = (fullPath: string, basePath: string | null): string | nu
   return fullPath.substring(normalizedBasePath.length);
 };
 
+/**
+ * 创建Zustand存储，管理文件差异比较状态
+ */
 export const useDiffStore = create<DiffState>()(
   persist(
     (set, get) => ({
@@ -101,6 +118,10 @@ export const useDiffStore = create<DiffState>()(
       },
 
       // Actions
+      /**
+       * 设置左侧文件夹
+       * @param {string|null} path - 文件夹路径
+       */
       setLeftFolder: (path) =>
         set((state) => {
           // 如果右侧没有选择文件夹，则自动选择相同的文件夹
@@ -112,6 +133,11 @@ export const useDiffStore = create<DiffState>()(
           }
           return { leftFolder: path };
         }),
+
+      /**
+       * 设置右侧文件夹
+       * @param {string|null} path - 文件夹路径
+       */
       setRightFolder: (path) =>
         set((state) => {
           // 如果左侧没有选择文件夹，则自动选择相同的文件夹
@@ -123,8 +149,24 @@ export const useDiffStore = create<DiffState>()(
           }
           return { rightFolder: path };
         }),
+
+      /**
+       * 设置左侧文件树
+       * @param {FolderInfo|null} tree - 文件树结构
+       */
       setLeftTree: (tree) => set({ leftTree: tree }),
+
+      /**
+       * 设置右侧文件树
+       * @param {FolderInfo|null} tree - 文件树结构
+       */
       setRightTree: (tree) => set({ rightTree: tree }),
+
+      /**
+       * 设置选中文件并自动查找另一侧的对应文件
+       * @param {('left'|'right')} side - 文件所在的侧边
+       * @param {string|null} path - 文件路径
+       */
       setSelectedFile: (side, path) => {
         const state = get();
         const otherSide = side === 'left' ? 'right' : 'left';
@@ -177,7 +219,17 @@ export const useDiffStore = create<DiffState>()(
 
         set({ selectedFile: newSelectedFile });
       },
+
+      /**
+       * 设置文件差异
+       * @param {FileDiff|null} diff - 文件差异数据
+       */
       setFileDiff: (diff) => set({ fileDiff: diff }),
+
+      /**
+       * 添加最近使用的文件夹
+       * @param {RecentFolder} folder - 文件夹信息
+       */
       addRecentFolder: (folder) =>
         set((state) => ({
           recentFolders: [
@@ -185,6 +237,13 @@ export const useDiffStore = create<DiffState>()(
             ...state.recentFolders.filter((f) => f.path !== folder.path),
           ].slice(0, 10), // 只保留最近10个
         })),
+
+      /**
+       * 设置文件过滤规则
+       * @param {Object} filters - 过滤规则
+       * @param {string[]} filters.include - 包含的文件模式
+       * @param {string[]} filters.exclude - 排除的文件模式
+       */
       setFileFilters: (filters) => set({ fileFilters: filters }),
     }),
     {

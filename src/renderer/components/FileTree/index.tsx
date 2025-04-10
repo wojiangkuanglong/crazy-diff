@@ -8,10 +8,19 @@ import {
   Minus,
   Plus,
 } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { memo, useCallback, useState } from 'react';
 import type { FileInfo, FolderInfo } from '../../../shared/types/diff';
 import { cn } from '../../../shared/utils';
 
+/**
+ * 文件树组件的属性接口
+ * @interface FileTreeProps
+ * @property {('left'|'right')} side - 文件树的位置（左侧或右侧）
+ * @property {boolean} [isLoading] - 是否正在加载文件树
+ * @property {FolderInfo|null} [tree] - 文件树数据
+ * @property {string|null} [selectedFile] - 当前选中的文件路径
+ * @property {Function} [onFileSelect] - 文件选择回调函数
+ */
 interface FileTreeProps {
   side: 'left' | 'right';
   isLoading?: boolean;
@@ -20,6 +29,15 @@ interface FileTreeProps {
   onFileSelect?: (path: string) => void;
 }
 
+/**
+ * 树节点组件的属性接口
+ * @interface TreeNodeProps
+ * @property {FileInfo|FolderInfo} node - 节点数据
+ * @property {number} level - 节点层级
+ * @property {('left'|'right')} side - 节点所在位置
+ * @property {string|null} [selectedFile] - 当前选中的文件路径
+ * @property {Function} [onFileSelect] - 文件选择回调函数
+ */
 interface TreeNodeProps {
   node: FileInfo | FolderInfo;
   level: number;
@@ -28,8 +46,18 @@ interface TreeNodeProps {
   onFileSelect?: (path: string) => void;
 }
 
-// 文件树节点组件
-function TreeNode({ node, level, side, selectedFile, onFileSelect }: TreeNodeProps) {
+/**
+ * 文件树节点组件 - 递归渲染文件和文件夹
+ * @param {TreeNodeProps} props - 组件属性
+ * @returns {JSX.Element} 渲染的节点组件
+ */
+const TreeNode = memo(function TreeNode({
+  node,
+  level,
+  side,
+  selectedFile,
+  onFileSelect,
+}: TreeNodeProps) {
   const [isExpanded, setIsExpanded] = useState(level === 0);
 
   // 判断当前节点是否被选中
@@ -43,6 +71,11 @@ function TreeNode({ node, level, side, selectedFile, onFileSelect }: TreeNodePro
     }
   }, [node, isExpanded, onFileSelect]);
 
+  /**
+   * 根据差异类型获取文本颜色
+   * @param {string} [diffType] - 差异类型
+   * @returns {string} CSS类名
+   */
   const getDiffColor = (diffType?: string) => {
     switch (diffType) {
       case 'added':
@@ -56,6 +89,11 @@ function TreeNode({ node, level, side, selectedFile, onFileSelect }: TreeNodePro
     }
   };
 
+  /**
+   * 根据差异类型获取图标
+   * @param {string} [diffType] - 差异类型
+   * @returns {JSX.Element|null} 图标组件或null
+   */
   const getDiffIcon = (diffType?: string) => {
     switch (diffType) {
       case 'added':
@@ -113,12 +151,26 @@ function TreeNode({ node, level, side, selectedFile, onFileSelect }: TreeNodePro
       )}
     </div>
   );
-}
+});
 
-// 文件树组件
-export function FileTree({ side, isLoading, tree, selectedFile, onFileSelect }: FileTreeProps) {
-  // 统计差异文件数量
-  const countDiffFiles = (node: FolderInfo | FileInfo) => {
+/**
+ * 文件树组件 - 显示文件夹结构和差异状态
+ * @param {FileTreeProps} props - 组件属性
+ * @returns {JSX.Element} 渲染的文件树组件
+ */
+export const FileTree = memo(function FileTree({
+  side,
+  isLoading,
+  tree,
+  selectedFile,
+  onFileSelect,
+}: FileTreeProps) {
+  /**
+   * 统计差异文件数量
+   * @param {FolderInfo|FileInfo} node - 节点数据
+   * @returns {Object} 各类型差异的数量统计
+   */
+  const countDiffFiles = useCallback((node: FolderInfo | FileInfo) => {
     const counts = {
       added: 0,
       removed: 0,
@@ -143,8 +195,9 @@ export function FileTree({ side, isLoading, tree, selectedFile, onFileSelect }: 
     }
 
     return counts;
-  };
+  }, []);
 
+  // 加载状态显示
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full flex-col gap-2 text-muted-foreground">
@@ -154,6 +207,7 @@ export function FileTree({ side, isLoading, tree, selectedFile, onFileSelect }: 
     );
   }
 
+  // 未选择文件夹时的提示
   if (!tree) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -187,4 +241,4 @@ export function FileTree({ side, isLoading, tree, selectedFile, onFileSelect }: 
       </div>
     </div>
   );
-}
+});
