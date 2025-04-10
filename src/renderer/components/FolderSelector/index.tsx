@@ -86,9 +86,7 @@ export function FolderSelector({ side, onLoadingChange }: FolderSelectorProps) {
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1">
           <Folder className="w-4 h-4" />
-          <span className="text-sm font-medium">
-            {side === 'left' ? '左侧文件夹' : '右侧文件夹'}
-          </span>
+          <span className="text-sm font-medium">{side === 'left' ? '文件夹1' : '文件夹2'}</span>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

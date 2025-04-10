@@ -41,7 +41,7 @@ export function MainScreen() {
   };
 
   return (
-    <main className="flex flex-col h-screen p-4 gap-4">
+    <main className="flex flex-col h-screen p-4 gap-4 relative">
       {/* 文件夹选择区域 - 减小高度 */}
       <div className="flex gap-4 flex-shrink-0">
         <div className="flex-1">

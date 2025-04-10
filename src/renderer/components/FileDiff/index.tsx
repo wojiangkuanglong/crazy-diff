@@ -1,12 +1,14 @@
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Maximize2, Minimize2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import ReactDiffViewer from 'react-diff-viewer-continued';
 import { useDiffStore } from '../../../shared/store/diffStore';
+import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 
 export function FileDiff() {
   const { selectedFile, fileDiff, setFileDiff } = useDiffStore();
   const [isLoading, setIsLoading] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
   useEffect(() => {
     // 当选中的文件变化时，获取文件内容差异
@@ -30,6 +32,11 @@ export function FileDiff() {
 
     fetchFileDiff();
   }, [selectedFile, setFileDiff]);
+
+  // 切换全屏模式
+  const toggleFullScreen = () => {
+    setIsFullScreen(!isFullScreen);
+  };
 
   // 只选择了左侧文件
   if (selectedFile.left && !selectedFile.right) {
@@ -66,7 +73,7 @@ export function FileDiff() {
   if (!selectedFile.left || !selectedFile.right) {
     return (
       <Card className="h-full flex items-center justify-center">
-        <div className="text-muted-foreground">请选择要比较的文件</div>
+        <div className="text-muted-foreground">文件比较区</div>
       </Card>
     );
   }
@@ -89,15 +96,29 @@ export function FileDiff() {
 
   // 使用ReactDiffViewer显示差异
   return (
-    <Card className="h-full p-4 overflow-auto">
+    <Card
+      className={`p-4 overflow-auto ${isFullScreen ? 'fixed inset-0 z-50 m-0 rounded-none' : 'h-full'}`}
+      style={{ background: 'var(--background)' }}
+    >
       <div className="mb-4 flex justify-between items-center text-sm">
         <div className="flex gap-2">
           <div className="text-muted-foreground">左侧:</div>
           <div className="truncate">{selectedFile.left}</div>
         </div>
-        <div className="flex gap-2">
-          <div className="text-muted-foreground">右侧:</div>
-          <div className="truncate">{selectedFile.right}</div>
+        <div className="flex items-center gap-2">
+          <div className="flex gap-2">
+            <div className="text-muted-foreground">右侧:</div>
+            <div className="truncate">{selectedFile.right}</div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleFullScreen}
+            className="ml-2 active:scale-95 transition-transform cursor-pointer hover:bg-muted"
+            title={isFullScreen ? '退出全屏' : '全屏显示'}
+          >
+            {isFullScreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </Button>
         </div>
       </div>
       <ReactDiffViewer
