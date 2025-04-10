@@ -56,26 +56,30 @@ export const MainScreen = memo(function MainScreen() {
       {/* 文件浏览和对比区域 */}
       <div className="flex flex-col flex-1 min-h-0 gap-4">
         {/* 文件树对比区域 */}
-        <div className="flex gap-4 h-2/5 min-h-0">
-          <div className="flex-1 border rounded-lg overflow-hidden">
-            <FileTree
-              side="left"
-              tree={leftTree}
-              isLoading={isLeftLoading}
-              selectedFile={selectedFile.left}
-              onFileSelect={handleFileSelect('left')}
-            />
+        {!leftTree && !rightTree ? (
+          <></>
+        ) : (
+          <div className="flex gap-4 h-2/5 min-h-0">
+            <div className="flex-1 border rounded-lg overflow-hidden">
+              <FileTree
+                side="left"
+                tree={leftTree}
+                isLoading={isLeftLoading}
+                selectedFile={selectedFile.left}
+                onFileSelect={handleFileSelect('left')}
+              />
+            </div>
+            <div className="flex-1 border rounded-lg overflow-hidden">
+              <FileTree
+                side="right"
+                tree={rightTree}
+                isLoading={isRightLoading}
+                selectedFile={selectedFile.right}
+                onFileSelect={handleFileSelect('right')}
+              />
+            </div>
           </div>
-          <div className="flex-1 border rounded-lg overflow-hidden">
-            <FileTree
-              side="right"
-              tree={rightTree}
-              isLoading={isRightLoading}
-              selectedFile={selectedFile.right}
-              onFileSelect={handleFileSelect('right')}
-            />
-          </div>
-        </div>
+        )}
 
         {/* 文件内容差异显示区域 */}
         <div className="flex-1 min-h-0 h-3/5">
