@@ -129,27 +129,16 @@ export const FolderSelector = memo(function FolderSelector({ side }: FolderSelec
   );
 
   return (
-    <Card className="p-2">
-      {/* 标题栏和最近使用按钮 */}
-      <div className="flex items-center justify-between mb-1">
+    <Card className="p-2 flex-1">
+      <div className="flex items-center gap-2">
+        {/* 左侧：标题和路径 */}
         <div className="flex items-center gap-1">
           <Folder className="w-4 h-4" />
           <span className="text-sm font-medium">{side === 'left' ? '文件夹1' : '文件夹2'}</span>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="cursor-pointer h-7 px-2 text-xs">
-              <History className="w-3 h-3 mr-1" />
-              最近
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>{recentFolders.map(renderRecentFolderItem)}</DropdownMenuContent>
-        </DropdownMenu>
-      </div>
 
-      {/* 文件夹路径和选择按钮 */}
-      <div className="flex items-center gap-1">
-        <div className="flex-1 truncate text-xs text-muted-foreground">
+        {/* 中间：文件夹路径 */}
+        <div className="flex-1 truncate text-xs text-muted-foreground items-center flex">
           {currentFolder || '未选择文件夹'}
           {isLoading && (
             <span className="ml-1 inline-flex items-center">
@@ -158,14 +147,27 @@ export const FolderSelector = memo(function FolderSelector({ side }: FolderSelec
             </span>
           )}
         </div>
-        <Button
-          onClick={handleSelectFolder}
-          size="sm"
-          className="cursor-pointer h-7 px-2 text-xs"
-          disabled={isLoading}
-        >
-          {isLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : '选择'}
-        </Button>
+
+        {/* 右侧：按钮组 */}
+        <div className="flex gap-1 items-center flex-shrink-0">
+          <Button
+            onClick={handleSelectFolder}
+            size="sm"
+            className="cursor-pointer h-7 px-2 text-xs"
+            disabled={isLoading}
+          >
+            {isLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : '选择文件夹'}
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="cursor-pointer h-7 px-2 text-xs">
+                <History className="w-3 h-3 mr-1" />
+                最近
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>{recentFolders.map(renderRecentFolderItem)}</DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </Card>
   );
