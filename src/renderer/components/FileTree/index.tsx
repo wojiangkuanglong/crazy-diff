@@ -9,36 +9,39 @@ import {
   Plus,
 } from 'lucide-react';
 import { useCallback, useState } from 'react';
-import { useDiffStore } from '../../../shared/store/diffStore';
 import type { FileInfo, FolderInfo } from '../../../shared/types/diff';
 import { cn } from '../../../shared/utils';
 
 interface FileTreeProps {
   side: 'left' | 'right';
   isLoading?: boolean;
+  tree?: FolderInfo | null;
+  selectedFile?: string | null;
+  onFileSelect?: (path: string) => void;
 }
 
 interface TreeNodeProps {
   node: FileInfo | FolderInfo;
   level: number;
   side: 'left' | 'right';
+  selectedFile?: string | null;
+  onFileSelect?: (path: string) => void;
 }
 
 // 文件树节点组件
-function TreeNode({ node, level, side }: TreeNodeProps) {
+function TreeNode({ node, level, side, selectedFile, onFileSelect }: TreeNodeProps) {
   const [isExpanded, setIsExpanded] = useState(level === 0);
-  const { setSelectedFile, selectedFile } = useDiffStore();
 
   // 判断当前节点是否被选中
-  const isSelected = node.type === 'file' && selectedFile[side] === node.path;
+  const isSelected = node.type === 'file' && selectedFile === node.path;
 
   const handleClick = useCallback(() => {
     if (node.type === 'file') {
-      setSelectedFile(side, node.path);
+      onFileSelect?.(node.path);
     } else {
       setIsExpanded(!isExpanded);
     }
-  }, [node, side, isExpanded, setSelectedFile]);
+  }, [node, isExpanded, onFileSelect]);
 
   const getDiffColor = (diffType?: string) => {
     switch (diffType) {
@@ -97,7 +100,14 @@ function TreeNode({ node, level, side }: TreeNodeProps) {
       {node.type === 'dir' && isExpanded && 'children' in node && (
         <div>
           {node.children.map((child) => (
-            <TreeNode key={child.path} node={child} level={level + 1} side={side} />
+            <TreeNode
+              key={child.path}
+              node={child}
+              level={level + 1}
+              side={side}
+              selectedFile={selectedFile}
+              onFileSelect={onFileSelect}
+            />
           ))}
         </div>
       )}
@@ -106,10 +116,7 @@ function TreeNode({ node, level, side }: TreeNodeProps) {
 }
 
 // 文件树组件
-export function FileTree({ side, isLoading }: FileTreeProps) {
-  const { leftTree, rightTree } = useDiffStore();
-  const tree = side === 'left' ? leftTree : rightTree;
-
+export function FileTree({ side, isLoading, tree, selectedFile, onFileSelect }: FileTreeProps) {
   // 统计差异文件数量
   const countDiffFiles = (node: FolderInfo | FileInfo) => {
     const counts = {
@@ -170,7 +177,13 @@ export function FileTree({ side, isLoading }: FileTreeProps) {
         </div>
       )}
       <div className="overflow-auto flex-1">
-        <TreeNode node={tree} level={0} side={side} />
+        <TreeNode
+          node={tree}
+          level={0}
+          side={side}
+          selectedFile={selectedFile}
+          onFileSelect={onFileSelect}
+        />
       </div>
     </div>
   );

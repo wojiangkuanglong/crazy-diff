@@ -40,9 +40,36 @@ interface DiffState {
   setFileFilters: (filters: { include: string[]; exclude: string[] }) => void;
 }
 
+// 在文件树中查找指定路径的文件
+const findFileInTree = (tree: FolderInfo | null, path: string): boolean => {
+  if (!tree) return false;
+
+  // 如果路径就是当前节点，找到了
+  if (tree.path === path) return true;
+
+  // 递归查找子节点
+  if (tree.children) {
+    for (const child of tree.children) {
+      if (child.path === path) return true;
+      if (child.type === 'dir' && 'children' in child) {
+        const found = findFileInTree(child as FolderInfo, path);
+        if (found) return true;
+      }
+    }
+  }
+
+  return false;
+};
+
+// 获取相对路径
+const getRelativePath = (fullPath: string, basePath: string | null): string | null => {
+  if (!basePath || !fullPath.startsWith(basePath)) return null;
+  return fullPath.substring(basePath.length);
+};
+
 export const useDiffStore = create<DiffState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       // 初始状态
       leftFolder: null,
       rightFolder: null,
@@ -64,13 +91,48 @@ export const useDiffStore = create<DiffState>()(
       setRightFolder: (path) => set({ rightFolder: path }),
       setLeftTree: (tree) => set({ leftTree: tree }),
       setRightTree: (tree) => set({ rightTree: tree }),
-      setSelectedFile: (side, path) =>
-        set((state) => ({
-          selectedFile: {
-            ...state.selectedFile,
-            [side]: path,
-          },
-        })),
+      setSelectedFile: (side, path) => {
+        const state = get();
+        const otherSide = side === 'left' ? 'right' : 'left';
+
+        // 首先更新当前侧的选中文件
+        const newSelectedFile = {
+          ...state.selectedFile,
+          [side]: path,
+        };
+
+        // 如果没有选择文件，则直接更新状态
+        if (!path) {
+          set({ selectedFile: newSelectedFile });
+          return;
+        }
+
+        // 获取两侧文件夹路径
+        const currentFolder = side === 'left' ? state.leftFolder : state.rightFolder;
+        const otherFolder = side === 'left' ? state.rightFolder : state.leftFolder;
+        const otherTree = side === 'left' ? state.rightTree : state.leftTree;
+
+        // 如果另一侧有文件夹和文件树
+        if (otherFolder && otherTree && currentFolder) {
+          // 获取当前文件的相对路径
+          const relativePath = getRelativePath(path, currentFolder);
+
+          if (relativePath) {
+            // 尝试构建另一侧的完整路径
+            const otherPath = otherFolder + relativePath;
+
+            // 检查另一侧是否存在相同路径的文件
+            const fileExists = findFileInTree(otherTree, otherPath);
+
+            if (fileExists) {
+              // 如果存在，则自动选择
+              newSelectedFile[otherSide] = otherPath;
+            }
+          }
+        }
+
+        set({ selectedFile: newSelectedFile });
+      },
       setFileDiff: (diff) => set({ fileDiff: diff }),
       addRecentFolder: (folder) =>
         set((state) => ({

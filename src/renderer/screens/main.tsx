@@ -11,7 +11,7 @@ const { App } = window;
 export function MainScreen() {
   const [isLeftLoading, setIsLeftLoading] = useState(false);
   const [isRightLoading, setIsRightLoading] = useState(false);
-  const { leftTree, rightTree } = useDiffStore();
+  const { leftTree, rightTree, selectedFile, setSelectedFile } = useDiffStore();
 
   useEffect(() => {
     App.sayHelloFromBridge();
@@ -40,6 +40,16 @@ export function MainScreen() {
     setIsRightLoading(loading);
   };
 
+  // 处理左侧文件选择
+  const handleLeftFileSelect = (path: string) => {
+    setSelectedFile('left', path);
+  };
+
+  // 处理右侧文件选择
+  const handleRightFileSelect = (path: string) => {
+    setSelectedFile('right', path);
+  };
+
   return (
     <main className="flex flex-col h-screen p-4 gap-4 relative">
       {/* 文件夹选择区域 - 减小高度 */}
@@ -57,10 +67,22 @@ export function MainScreen() {
         {/* 文件树对比区域 - 调整比例 */}
         <div className="flex gap-4 h-2/5 min-h-0">
           <div className="flex-1 border rounded-lg overflow-hidden">
-            <FileTree side="left" isLoading={isLeftLoading} />
+            <FileTree
+              side="left"
+              tree={leftTree}
+              isLoading={isLeftLoading}
+              selectedFile={selectedFile.left}
+              onFileSelect={handleLeftFileSelect}
+            />
           </div>
           <div className="flex-1 border rounded-lg overflow-hidden">
-            <FileTree side="right" isLoading={isRightLoading} />
+            <FileTree
+              side="right"
+              tree={rightTree}
+              isLoading={isRightLoading}
+              selectedFile={selectedFile.right}
+              onFileSelect={handleRightFileSelect}
+            />
           </div>
         </div>
 
