@@ -1,6 +1,7 @@
 import { Folder, History, Loader2 } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import { useDiffStore } from '../../../shared/store/diffStore';
+import type { RecentFolder } from '../../../shared/types/diff';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import {
@@ -25,6 +26,7 @@ interface FolderSelectorProps {
  * @returns {JSX.Element} 渲染的文件夹选择器组件
  */
 export const FolderSelector = memo(function FolderSelector({ side }: FolderSelectorProps) {
+  // 状态和存储
   const [isLoading, setIsLoading] = useState(false);
   const {
     leftFolder,
@@ -37,8 +39,11 @@ export const FolderSelector = memo(function FolderSelector({ side }: FolderSelec
     setRightTree,
   } = useDiffStore();
 
+  // 根据当前选择的side确定相应的值和操作函数
   const currentFolder = side === 'left' ? leftFolder : rightFolder;
   const setFolder = side === 'left' ? setLeftFolder : setRightFolder;
+  const setTree = side === 'left' ? setLeftTree : setRightTree;
+  const comparePath = side === 'left' ? rightFolder : leftFolder;
 
   /**
    * 获取文件树
@@ -49,21 +54,15 @@ export const FolderSelector = memo(function FolderSelector({ side }: FolderSelec
     async (path: string) => {
       try {
         setIsLoading(true);
-        // 根据当前是哪一侧，决定比较路径
-        const comparePath = side === 'left' ? rightFolder : leftFolder;
         const tree = await window.electron.ipcRenderer.invoke('get-file-tree', path, comparePath);
-        if (side === 'left') {
-          setLeftTree(tree);
-        } else {
-          setRightTree(tree);
-        }
+        setTree(tree);
       } catch (error) {
-        console.error('Failed to get file tree:', error);
+        console.error('获取文件树失败:', error);
       } finally {
         setIsLoading(false);
       }
     },
-    [side, leftFolder, rightFolder, setLeftTree, setRightTree],
+    [setTree, comparePath],
   );
 
   /**
@@ -77,7 +76,7 @@ export const FolderSelector = memo(function FolderSelector({ side }: FolderSelec
         // 设置当前侧的文件夹
         setFolder(result);
 
-        // 添加最近使用的文件夹
+        // 添加到最近使用的文件夹列表
         addRecentFolder({
           path: result,
           name: result.split('/').pop() || result,
@@ -88,7 +87,7 @@ export const FolderSelector = memo(function FolderSelector({ side }: FolderSelec
         await getFileTree(result);
       }
     } catch (error) {
-      console.error('Failed to select folder:', error);
+      console.error('选择文件夹失败:', error);
     }
   }, [setFolder, addRecentFolder, getFileTree]);
 
@@ -108,8 +107,30 @@ export const FolderSelector = memo(function FolderSelector({ side }: FolderSelec
     [setFolder, getFileTree],
   );
 
+  /**
+   * 渲染最近使用的文件夹项
+   * @param {RecentFolder} folder - 文件夹信息
+   * @returns {JSX.Element} 文件夹项组件
+   */
+  const renderRecentFolderItem = (folder: RecentFolder) => (
+    <DropdownMenuItem
+      key={folder.path}
+      onClick={() => handleRecentFolderSelect(folder.path)}
+      className="truncate"
+      title={folder.path}
+    >
+      <div className="flex flex-col">
+        <span className="truncate text-xs">{folder.path}</span>
+        <span className="text-xs text-muted-foreground">
+          {new Date(folder.lastUsed).toLocaleString()}
+        </span>
+      </div>
+    </DropdownMenuItem>
+  );
+
   return (
     <Card className="p-2">
+      {/* 标题栏和最近使用按钮 */}
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1">
           <Folder className="w-4 h-4" />
@@ -122,26 +143,11 @@ export const FolderSelector = memo(function FolderSelector({ side }: FolderSelec
               最近
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            {recentFolders.map((folder) => (
-              <DropdownMenuItem
-                key={folder.path}
-                onClick={() => handleRecentFolderSelect(folder.path)}
-                className="truncate"
-                title={folder.path}
-              >
-                <div className="flex flex-col">
-                  <span className="truncate text-xs">{folder.path}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(folder.lastUsed).toLocaleString()}
-                  </span>
-                </div>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
+          <DropdownMenuContent>{recentFolders.map(renderRecentFolderItem)}</DropdownMenuContent>
         </DropdownMenu>
       </div>
 
+      {/* 文件夹路径和选择按钮 */}
       <div className="flex items-center gap-1">
         <div className="flex-1 truncate text-xs text-muted-foreground">
           {currentFolder || '未选择文件夹'}
