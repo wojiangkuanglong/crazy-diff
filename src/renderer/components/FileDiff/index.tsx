@@ -1,3 +1,4 @@
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import ReactDiffViewer from 'react-diff-viewer-continued';
 import { useDiffStore } from '../../../shared/store/diffStore';
@@ -30,10 +31,42 @@ export function FileDiff() {
     fetchFileDiff();
   }, [selectedFile, setFileDiff]);
 
+  // 只选择了左侧文件
+  if (selectedFile.left && !selectedFile.right) {
+    return (
+      <Card className="h-full flex items-center justify-center">
+        <div className="flex flex-col items-center text-muted-foreground">
+          <div className="flex items-center mb-2">
+            <span>已选择左侧文件</span>
+            <ArrowRight className="h-4 w-4 mx-2" />
+            <span className="text-primary">请选择右侧文件进行对比</span>
+          </div>
+          <div className="text-sm">{selectedFile.left.split('/').pop()}</div>
+        </div>
+      </Card>
+    );
+  }
+
+  // 只选择了右侧文件
+  if (!selectedFile.left && selectedFile.right) {
+    return (
+      <Card className="h-full flex items-center justify-center">
+        <div className="flex flex-col items-center text-muted-foreground">
+          <div className="flex items-center mb-2">
+            <span className="text-primary">请选择左侧文件进行对比</span>
+            <ArrowLeft className="h-4 w-4 mx-2" />
+            <span>已选择右侧文件</span>
+          </div>
+          <div className="text-sm">{selectedFile.right.split('/').pop()}</div>
+        </div>
+      </Card>
+    );
+  }
+
   if (!selectedFile.left || !selectedFile.right) {
     return (
       <Card className="h-full flex items-center justify-center">
-        <div className="text-muted-foreground">文件对比区</div>
+        <div className="text-muted-foreground">请选择要比较的文件</div>
       </Card>
     );
   }
@@ -57,7 +90,7 @@ export function FileDiff() {
   // 使用ReactDiffViewer显示差异
   return (
     <Card className="h-full p-4 overflow-auto">
-      <div className="mb-4 flex justify-between text-sm">
+      <div className="mb-4 flex justify-between items-center text-sm">
         <div className="flex gap-2">
           <div className="text-muted-foreground">左侧:</div>
           <div className="truncate">{selectedFile.left}</div>
@@ -70,7 +103,7 @@ export function FileDiff() {
       <ReactDiffViewer
         oldValue={fileDiff.oldContent}
         newValue={fileDiff.newContent}
-        disableWordDiff={true}
+        disableWordDiff
         codeFoldMessageRenderer={() => (
           <span className="text-xs text-muted-foreground">展开/折叠</span>
         )}

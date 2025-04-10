@@ -26,8 +26,11 @@ interface TreeNodeProps {
 
 // 文件树节点组件
 function TreeNode({ node, level, side }: TreeNodeProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const { setSelectedFile } = useDiffStore();
+  const [isExpanded, setIsExpanded] = useState(level === 0);
+  const { setSelectedFile, selectedFile } = useDiffStore();
+
+  // 判断当前节点是否被选中
+  const isSelected = node.type === 'file' && selectedFile[side] === node.path;
 
   const handleClick = useCallback(() => {
     if (node.type === 'file') {
@@ -69,6 +72,7 @@ function TreeNode({ node, level, side }: TreeNodeProps) {
         className={cn(
           'flex items-center py-1 px-2 hover:bg-accent cursor-pointer',
           getDiffColor(node.diffType),
+          isSelected && 'bg-primary-foreground border-l-2 border-primary font-medium',
         )}
         style={{ paddingLeft: `${level * 1.5 + 0.5}rem` }}
         onClick={handleClick}
