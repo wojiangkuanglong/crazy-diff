@@ -16,11 +16,37 @@ interface FolderSelectorProps {
 
 export function FolderSelector({ side }: FolderSelectorProps) {
   const [isDragging, setIsDragging] = useState(false);
-  const { leftFolder, rightFolder, recentFolders, setLeftFolder, setRightFolder, addRecentFolder } =
-    useDiffStore();
+  const {
+    leftFolder,
+    rightFolder,
+    recentFolders,
+    setLeftFolder,
+    setRightFolder,
+    addRecentFolder,
+    setLeftTree,
+    setRightTree,
+  } = useDiffStore();
 
   const currentFolder = side === 'left' ? leftFolder : rightFolder;
   const setFolder = side === 'left' ? setLeftFolder : setRightFolder;
+  const setTree = side === 'left' ? setLeftTree : setRightTree;
+
+  // 获取文件树
+  const getFileTree = useCallback(
+    async (path: string) => {
+      try {
+        // 获取另一侧的文件夹路径用于比较
+        const comparePath = side === 'left' ? rightFolder : leftFolder;
+        const tree = await window.electron.ipcRenderer.invoke('get-file-tree', path, comparePath);
+        if (tree) {
+          setTree(tree);
+        }
+      } catch (error) {
+        console.error('Failed to get file tree:', error);
+      }
+    },
+    [setTree, side, leftFolder, rightFolder],
+  );
 
   // 处理拖拽事件
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -54,11 +80,12 @@ export function FolderSelector({ side }: FolderSelectorProps) {
               name: entry.name,
               lastUsed: new Date(),
             });
+            await getFileTree(path);
           }
         }
       }
     },
-    [setFolder, addRecentFolder],
+    [setFolder, addRecentFolder, getFileTree],
   );
 
   // 处理文件夹选择
@@ -72,47 +99,63 @@ export function FolderSelector({ side }: FolderSelectorProps) {
           name: result.split('/').pop() || result,
           lastUsed: new Date(),
         });
+        await getFileTree(result);
       }
     } catch (error) {
       console.error('Failed to select folder:', error);
     }
-  }, [setFolder, addRecentFolder]);
+  }, [setFolder, addRecentFolder, getFileTree]);
 
   return (
     <Card
-      className={`p-4 ${isDragging ? 'border-primary' : ''}`}
+      className={`p-2 ${isDragging ? 'border-primary' : ''}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <Folder className="w-5 h-5" />
-          <span className="font-medium">{side === 'left' ? '左侧文件夹' : '右侧文件夹'}</span>
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-1">
+          <Folder className="w-4 h-4" />
+          <span className="text-sm font-medium">
+            {side === 'left' ? '左侧文件夹' : '右侧文件夹'}
+          </span>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="cursor-pointer">
-              <History className="w-4 h-4 mr-2" />
-              最近使用
+            <Button variant="outline" size="sm" className="cursor-pointer h-7 px-2 text-xs">
+              <History className="w-3 h-3 mr-1" />
+              最近
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             {recentFolders.map((folder) => (
-              <DropdownMenuItem key={folder.path} onClick={() => setFolder(folder.path)}>
-                {folder.name}
+              <DropdownMenuItem
+                key={folder.path}
+                onClick={async () => {
+                  setFolder(folder.path);
+                  await getFileTree(folder.path);
+                }}
+                className="truncate"
+                title={folder.path}
+              >
+                <div className="flex flex-col">
+                  <span className="truncate text-xs">{folder.path}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(folder.lastUsed).toLocaleString()}
+                  </span>
+                </div>
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
-      <div className="flex items-center gap-2">
-        <div className="flex-1 truncate text-sm text-muted-foreground">
+      <div className="flex items-center gap-1">
+        <div className="flex-1 truncate text-xs text-muted-foreground">
           {currentFolder || '未选择文件夹'}
         </div>
-        <Button onClick={handleSelectFolder} size="sm" className="cursor-pointer">
-          选择文件夹
+        <Button onClick={handleSelectFolder} size="sm" className="cursor-pointer h-7 px-2 text-xs">
+          选择
         </Button>
       </div>
     </Card>

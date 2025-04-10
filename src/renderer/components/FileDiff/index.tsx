@@ -70,8 +70,7 @@ export function FileDiff() {
       <ReactDiffViewer
         oldValue={fileDiff.oldContent}
         newValue={fileDiff.newContent}
-        splitView={true}
-        disableWordDiff={false}
+        disableWordDiff={true}
         codeFoldMessageRenderer={() => (
           <span className="text-xs text-muted-foreground">展开/折叠</span>
         )}
@@ -91,8 +90,6 @@ export function FileDiff() {
             },
           },
           contentText: {
-            fontSize: '0.85rem',
-            lineHeight: '1.5',
             fontFamily: 'monospace',
           },
         }}
