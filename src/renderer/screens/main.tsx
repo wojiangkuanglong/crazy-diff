@@ -36,22 +36,6 @@ export const MainScreen = memo(function MainScreen() {
   }, [rightTree]);
 
   /**
-   * 当开始获取左侧文件树时设置加载状态
-   * @param {boolean} loading - 是否正在加载
-   */
-  const handleLeftFolderLoading = useCallback((loading: boolean) => {
-    setIsLeftLoading(loading);
-  }, []);
-
-  /**
-   * 当开始获取右侧文件树时设置加载状态
-   * @param {boolean} loading - 是否正在加载
-   */
-  const handleRightFolderLoading = useCallback((loading: boolean) => {
-    setIsRightLoading(loading);
-  }, []);
-
-  /**
    * 处理左侧文件选择
    * @param {string} path - 选中的文件路径
    */
@@ -88,10 +72,10 @@ export const MainScreen = memo(function MainScreen() {
       {/* 文件夹选择区域 - 减小高度 */}
       <div className="flex gap-4 flex-shrink-0">
         <div className="flex-1">
-          <FolderSelector side="left" onLoadingChange={handleLeftFolderLoading} />
+          <FolderSelector side="left" />
         </div>
         <div className="flex-1">
-          <FolderSelector side="right" onLoadingChange={handleRightFolderLoading} />
+          <FolderSelector side="right" />
         </div>
       </div>
 

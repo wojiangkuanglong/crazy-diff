@@ -122,33 +122,13 @@ export const useDiffStore = create<DiffState>()(
        * 设置左侧文件夹
        * @param {string|null} path - 文件夹路径
        */
-      setLeftFolder: (path) =>
-        set((state) => {
-          // 如果右侧没有选择文件夹，则自动选择相同的文件夹
-          if (path && !state.rightFolder) {
-            return {
-              leftFolder: path,
-              rightFolder: path,
-            };
-          }
-          return { leftFolder: path };
-        }),
+      setLeftFolder: (path) => set({ leftFolder: path }),
 
       /**
        * 设置右侧文件夹
        * @param {string|null} path - 文件夹路径
        */
-      setRightFolder: (path) =>
-        set((state) => {
-          // 如果左侧没有选择文件夹，则自动选择相同的文件夹
-          if (path && !state.leftFolder) {
-            return {
-              leftFolder: path,
-              rightFolder: path,
-            };
-          }
-          return { rightFolder: path };
-        }),
+      setRightFolder: (path) => set({ rightFolder: path }),
 
       /**
        * 设置左侧文件树

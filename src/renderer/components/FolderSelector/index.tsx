@@ -14,11 +14,9 @@ import {
  * 文件夹选择器的属性接口
  * @interface FolderSelectorProps
  * @property {('left'|'right')} side - 选择器的位置（左侧或右侧）
- * @property {Function} [onLoadingChange] - 加载状态变化的回调函数
  */
 interface FolderSelectorProps {
   side: 'left' | 'right';
-  onLoadingChange?: (loading: boolean) => void;
 }
 
 /**
@@ -26,10 +24,7 @@ interface FolderSelectorProps {
  * @param {FolderSelectorProps} props - 组件属性
  * @returns {JSX.Element} 渲染的文件夹选择器组件
  */
-export const FolderSelector = memo(function FolderSelector({
-  side,
-  onLoadingChange,
-}: FolderSelectorProps) {
+export const FolderSelector = memo(function FolderSelector({ side }: FolderSelectorProps) {
   const [isLoading, setIsLoading] = useState(false);
   const {
     leftFolder,
@@ -44,21 +39,6 @@ export const FolderSelector = memo(function FolderSelector({
 
   const currentFolder = side === 'left' ? leftFolder : rightFolder;
   const setFolder = side === 'left' ? setLeftFolder : setRightFolder;
-  const setTree = side === 'left' ? setLeftTree : setRightTree;
-
-  /**
-   * 设置加载状态并通知父组件
-   * @param {boolean} loading - 是否正在加载
-   */
-  const setLoading = useCallback(
-    (loading: boolean) => {
-      setIsLoading(loading);
-      if (onLoadingChange) {
-        onLoadingChange(loading);
-      }
-    },
-    [onLoadingChange],
-  );
 
   /**
    * 获取文件树
@@ -68,20 +48,22 @@ export const FolderSelector = memo(function FolderSelector({
   const getFileTree = useCallback(
     async (path: string) => {
       try {
-        setLoading(true);
-        // 获取另一侧的文件夹路径用于比较
+        setIsLoading(true);
+        // 根据当前是哪一侧，决定比较路径
         const comparePath = side === 'left' ? rightFolder : leftFolder;
         const tree = await window.electron.ipcRenderer.invoke('get-file-tree', path, comparePath);
-        if (tree) {
-          setTree(tree);
+        if (side === 'left') {
+          setLeftTree(tree);
+        } else {
+          setRightTree(tree);
         }
       } catch (error) {
         console.error('Failed to get file tree:', error);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     },
-    [setTree, side, leftFolder, rightFolder, setLoading],
+    [side, leftFolder, rightFolder, setLeftTree, setRightTree],
   );
 
   /**
@@ -104,36 +86,11 @@ export const FolderSelector = memo(function FolderSelector({
 
         // 获取当前侧的文件树
         await getFileTree(result);
-
-        // 如果另一侧没有选择文件夹，则自动选择相同的文件夹
-        const otherFolder = side === 'left' ? rightFolder : leftFolder;
-        const otherSetFolder = side === 'left' ? setRightFolder : setLeftFolder;
-        const otherSetTree = side === 'left' ? setRightTree : setLeftTree;
-
-        if (!otherFolder) {
-          otherSetFolder(result);
-          await window.electron.ipcRenderer.invoke('get-file-tree', result, result).then((tree) => {
-            if (tree) {
-              otherSetTree(tree);
-            }
-          });
-        }
       }
     } catch (error) {
       console.error('Failed to select folder:', error);
     }
-  }, [
-    setFolder,
-    addRecentFolder,
-    getFileTree,
-    side,
-    rightFolder,
-    leftFolder,
-    setRightFolder,
-    setLeftFolder,
-    setRightTree,
-    setLeftTree,
-  ]);
+  }, [setFolder, addRecentFolder, getFileTree]);
 
   /**
    * 处理从最近文件夹列表中选择文件夹
@@ -147,32 +104,8 @@ export const FolderSelector = memo(function FolderSelector({
 
       // 获取当前侧的文件树
       await getFileTree(path);
-
-      // 如果另一侧没有选择文件夹，则自动选择相同的文件夹
-      const otherFolder = side === 'left' ? rightFolder : leftFolder;
-      const otherSetFolder = side === 'left' ? setRightFolder : setLeftFolder;
-      const otherSetTree = side === 'left' ? setRightTree : setLeftTree;
-
-      if (!otherFolder) {
-        otherSetFolder(path);
-        await window.electron.ipcRenderer.invoke('get-file-tree', path, path).then((tree) => {
-          if (tree) {
-            otherSetTree(tree);
-          }
-        });
-      }
     },
-    [
-      setFolder,
-      getFileTree,
-      side,
-      rightFolder,
-      leftFolder,
-      setRightFolder,
-      setLeftFolder,
-      setRightTree,
-      setLeftTree,
-    ],
+    [setFolder, getFileTree],
   );
 
   return (
