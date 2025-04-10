@@ -1,3 +1,5 @@
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 import { author as _author, name } from '~/package.json';
 
 const author = _author.name ?? _author;
@@ -14,4 +16,8 @@ const appId = `com.${authorInKebabCase}.${name}`.toLowerCase();
  */
 export function makeAppId(id: string = appId): string {
   return id;
+}
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
 }
