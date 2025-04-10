@@ -68,18 +68,48 @@ export function FolderSelector({ side, onLoadingChange }: FolderSelectorProps) {
     try {
       const result = await window.electron.ipcRenderer.invoke('select-folder');
       if (result) {
+        // 设置当前侧的文件夹
         setFolder(result);
+
+        // 添加最近使用的文件夹
         addRecentFolder({
           path: result,
           name: result.split('/').pop() || result,
           lastUsed: new Date(),
         });
+
+        // 获取当前侧的文件树
         await getFileTree(result);
+
+        // 如果另一侧没有选择文件夹，则自动选择相同的文件夹
+        const otherFolder = side === 'left' ? rightFolder : leftFolder;
+        const otherSetFolder = side === 'left' ? setRightFolder : setLeftFolder;
+        const otherSetTree = side === 'left' ? setRightTree : setLeftTree;
+
+        if (!otherFolder) {
+          otherSetFolder(result);
+          await window.electron.ipcRenderer.invoke('get-file-tree', result, result).then((tree) => {
+            if (tree) {
+              otherSetTree(tree);
+            }
+          });
+        }
       }
     } catch (error) {
       console.error('Failed to select folder:', error);
     }
-  }, [setFolder, addRecentFolder, getFileTree]);
+  }, [
+    setFolder,
+    addRecentFolder,
+    getFileTree,
+    side,
+    rightFolder,
+    leftFolder,
+    setRightFolder,
+    setLeftFolder,
+    setRightTree,
+    setLeftTree,
+  ]);
 
   return (
     <Card className="p-2">
@@ -100,8 +130,27 @@ export function FolderSelector({ side, onLoadingChange }: FolderSelectorProps) {
               <DropdownMenuItem
                 key={folder.path}
                 onClick={async () => {
+                  // 设置当前侧的文件夹
                   setFolder(folder.path);
+
+                  // 获取当前侧的文件树
                   await getFileTree(folder.path);
+
+                  // 如果另一侧没有选择文件夹，则自动选择相同的文件夹
+                  const otherFolder = side === 'left' ? rightFolder : leftFolder;
+                  const otherSetFolder = side === 'left' ? setRightFolder : setLeftFolder;
+                  const otherSetTree = side === 'left' ? setRightTree : setLeftTree;
+
+                  if (!otherFolder) {
+                    otherSetFolder(folder.path);
+                    await window.electron.ipcRenderer
+                      .invoke('get-file-tree', folder.path, folder.path)
+                      .then((tree) => {
+                        if (tree) {
+                          otherSetTree(tree);
+                        }
+                      });
+                  }
                 }}
                 className="truncate"
                 title={folder.path}

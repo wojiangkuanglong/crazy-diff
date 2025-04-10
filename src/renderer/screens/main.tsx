@@ -42,12 +42,22 @@ export function MainScreen() {
 
   // 处理左侧文件选择
   const handleLeftFileSelect = (path: string) => {
-    setSelectedFile('left', path);
+    // 先清空选中的文件，确保状态变化
+    setSelectedFile('left', null);
+    // 然后设置新的选中文件
+    setTimeout(() => {
+      setSelectedFile('left', path);
+    }, 0);
   };
 
   // 处理右侧文件选择
   const handleRightFileSelect = (path: string) => {
-    setSelectedFile('right', path);
+    // 先清空选中的文件，确保状态变化
+    setSelectedFile('right', null);
+    // 然后设置新的选中文件
+    setTimeout(() => {
+      setSelectedFile('right', path);
+    }, 0);
   };
 
   return (
