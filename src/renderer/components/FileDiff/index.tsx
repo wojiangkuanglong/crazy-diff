@@ -33,7 +33,7 @@ export function FileDiff() {
   if (!selectedFile.left || !selectedFile.right) {
     return (
       <Card className="h-full flex items-center justify-center">
-        <div className="text-muted-foreground">请选择要比较的文件</div>
+        <div className="text-muted-foreground">文件对比区</div>
       </Card>
     );
   }

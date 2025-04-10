@@ -1,4 +1,13 @@
-import { ChevronDown, ChevronRight, File, Folder } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronRight,
+  File,
+  FileEdit,
+  Folder,
+  Loader2,
+  Minus,
+  Plus,
+} from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useDiffStore } from '../../../shared/store/diffStore';
 import type { FileInfo, FolderInfo } from '../../../shared/types/diff';
@@ -6,6 +15,7 @@ import { cn } from '../../../shared/utils';
 
 interface FileTreeProps {
   side: 'left' | 'right';
+  isLoading?: boolean;
 }
 
 interface TreeNodeProps {
@@ -30,13 +40,26 @@ function TreeNode({ node, level, side }: TreeNodeProps) {
   const getDiffColor = (diffType?: string) => {
     switch (diffType) {
       case 'added':
-        return 'text-green-500';
+        return 'text-green-500 font-medium';
       case 'removed':
-        return 'text-red-500';
+        return 'text-red-500 font-medium';
       case 'modified':
-        return 'text-yellow-500';
+        return 'text-yellow-500 font-medium';
       default:
         return 'text-foreground';
+    }
+  };
+
+  const getDiffIcon = (diffType?: string) => {
+    switch (diffType) {
+      case 'added':
+        return <Plus className="h-3 w-3 text-green-500 ml-1.5" />;
+      case 'removed':
+        return <Minus className="h-3 w-3 text-red-500 ml-1.5" />;
+      case 'modified':
+        return <FileEdit className="h-3 w-3 text-yellow-500 ml-1.5" />;
+      default:
+        return null;
     }
   };
 
@@ -65,6 +88,7 @@ function TreeNode({ node, level, side }: TreeNodeProps) {
           <File className="w-4 h-4 mr-2" />
         )}
         <span className="truncate">{node.name}</span>
+        {getDiffIcon(node.diffType)}
       </div>
       {node.type === 'dir' && isExpanded && 'children' in node && (
         <div>
@@ -78,9 +102,46 @@ function TreeNode({ node, level, side }: TreeNodeProps) {
 }
 
 // 文件树组件
-export function FileTree({ side }: FileTreeProps) {
+export function FileTree({ side, isLoading }: FileTreeProps) {
   const { leftTree, rightTree } = useDiffStore();
   const tree = side === 'left' ? leftTree : rightTree;
+
+  // 统计差异文件数量
+  const countDiffFiles = (node: FolderInfo | FileInfo) => {
+    const counts = {
+      added: 0,
+      removed: 0,
+      modified: 0,
+      total: 0,
+    };
+
+    if (node.diffType === 'added') counts.added++;
+    if (node.diffType === 'removed') counts.removed++;
+    if (node.diffType === 'modified') counts.modified++;
+
+    counts.total++;
+
+    if (node.type === 'dir' && 'children' in node) {
+      for (const child of node.children) {
+        const childCounts = countDiffFiles(child);
+        counts.added += childCounts.added;
+        counts.removed += childCounts.removed;
+        counts.modified += childCounts.modified;
+        counts.total += childCounts.total;
+      }
+    }
+
+    return counts;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full flex-col gap-2 text-muted-foreground">
+        <Loader2 className="w-6 h-6 animate-spin" />
+        <span>加载文件夹内容...</span>
+      </div>
+    );
+  }
 
   if (!tree) {
     return (
@@ -90,9 +151,23 @@ export function FileTree({ side }: FileTreeProps) {
     );
   }
 
+  const diffCounts = countDiffFiles(tree);
+
   return (
-    <div className="h-full overflow-auto">
-      <TreeNode node={tree} level={0} side={side} />
+    <div className="h-full flex flex-col">
+      {side === 'right' && (
+        <div className="bg-muted p-1 flex justify-between items-center text-xs">
+          <div>总文件: {diffCounts.total}</div>
+          <div className="flex gap-2">
+            <span className="text-green-500">新增: {diffCounts.added}</span>
+            <span className="text-red-500">删除: {diffCounts.removed}</span>
+            <span className="text-yellow-500">修改: {diffCounts.modified}</span>
+          </div>
+        </div>
+      )}
+      <div className="overflow-auto flex-1">
+        <TreeNode node={tree} level={0} side={side} />
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { Folder, History } from 'lucide-react';
+import { Folder, History, Loader2 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useDiffStore } from '../../../shared/store/diffStore';
 import { Button } from '../ui/button';
@@ -12,10 +12,11 @@ import {
 
 interface FolderSelectorProps {
   side: 'left' | 'right';
+  onLoadingChange?: (loading: boolean) => void;
 }
 
-export function FolderSelector({ side }: FolderSelectorProps) {
-  const [isDragging, setIsDragging] = useState(false);
+export function FolderSelector({ side, onLoadingChange }: FolderSelectorProps) {
+  const [isLoading, setIsLoading] = useState(false);
   const {
     leftFolder,
     rightFolder,
@@ -31,10 +32,22 @@ export function FolderSelector({ side }: FolderSelectorProps) {
   const setFolder = side === 'left' ? setLeftFolder : setRightFolder;
   const setTree = side === 'left' ? setLeftTree : setRightTree;
 
+  // 设置加载状态并通知父组件
+  const setLoading = useCallback(
+    (loading: boolean) => {
+      setIsLoading(loading);
+      if (onLoadingChange) {
+        onLoadingChange(loading);
+      }
+    },
+    [onLoadingChange],
+  );
+
   // 获取文件树
   const getFileTree = useCallback(
     async (path: string) => {
       try {
+        setLoading(true);
         // 获取另一侧的文件夹路径用于比较
         const comparePath = side === 'left' ? rightFolder : leftFolder;
         const tree = await window.electron.ipcRenderer.invoke('get-file-tree', path, comparePath);
@@ -43,49 +56,11 @@ export function FolderSelector({ side }: FolderSelectorProps) {
         }
       } catch (error) {
         console.error('Failed to get file tree:', error);
+      } finally {
+        setLoading(false);
       }
     },
-    [setTree, side, leftFolder, rightFolder],
-  );
-
-  // 处理拖拽事件
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  }, []);
-
-  const handleDrop = useCallback(
-    async (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsDragging(false);
-
-      const items = e.dataTransfer.items;
-      if (items.length > 0) {
-        const item = items[0];
-        if (item.kind === 'file') {
-          const entry = item.webkitGetAsEntry();
-          if (entry?.isDirectory) {
-            const path = entry.fullPath;
-            setFolder(path);
-            addRecentFolder({
-              path,
-              name: entry.name,
-              lastUsed: new Date(),
-            });
-            await getFileTree(path);
-          }
-        }
-      }
-    },
-    [setFolder, addRecentFolder, getFileTree],
+    [setTree, side, leftFolder, rightFolder, setLoading],
   );
 
   // 处理文件夹选择
@@ -107,12 +82,7 @@ export function FolderSelector({ side }: FolderSelectorProps) {
   }, [setFolder, addRecentFolder, getFileTree]);
 
   return (
-    <Card
-      className={`p-2 ${isDragging ? 'border-primary' : ''}`}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-    >
+    <Card className="p-2">
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1">
           <Folder className="w-4 h-4" />
@@ -153,9 +123,20 @@ export function FolderSelector({ side }: FolderSelectorProps) {
       <div className="flex items-center gap-1">
         <div className="flex-1 truncate text-xs text-muted-foreground">
           {currentFolder || '未选择文件夹'}
+          {isLoading && (
+            <span className="ml-1 inline-flex items-center">
+              <Loader2 className="w-3 h-3 animate-spin mr-1" />
+              加载中...
+            </span>
+          )}
         </div>
-        <Button onClick={handleSelectFolder} size="sm" className="cursor-pointer h-7 px-2 text-xs">
-          选择
+        <Button
+          onClick={handleSelectFolder}
+          size="sm"
+          className="cursor-pointer h-7 px-2 text-xs"
+          disabled={isLoading}
+        >
+          {isLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : '选择'}
         </Button>
       </div>
     </Card>
