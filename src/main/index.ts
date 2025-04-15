@@ -2,6 +2,7 @@ import { readFile, readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import * as jsDiff from 'diff';
 import { app, dialog, ipcMain } from 'electron';
+import { DEFAULT_IGNORE_PATTERNS } from '../shared/constants/ignore';
 import type { DiffType, FileDiff, FileInfo, FolderInfo } from '../shared/types/diff';
 
 import { makeAppWithSingleInstanceLock } from 'lib/electron-app/factories/app/instance';
@@ -25,46 +26,83 @@ ipcMain.handle('select-folder', async () => {
   return null;
 });
 
-// 获取文件树
-async function getFileTree(path: string): Promise<FileInfo | FolderInfo> {
-  const stats = await stat(path);
+/**
+ * 检查路径是否应该被忽略
+ * @param path 要检查的路径
+ * @returns 是否应该被忽略
+ */
+function shouldIgnore(path: string): boolean {
   const name = path.split('/').pop() || path;
+  return DEFAULT_IGNORE_PATTERNS.some((pattern) => {
+    // 处理通配符
+    if (pattern.includes('*')) {
+      const regex = new RegExp(`^${pattern.replace(/\*/g, '.*')}$`);
+      return regex.test(name);
+    }
+    return name === pattern;
+  });
+}
 
-  if (stats.isFile()) {
+// 获取文件树
+async function getFileTree(path: string): Promise<FileInfo | FolderInfo | null> {
+  try {
+    const stats = await stat(path);
+    const name = path.split('/').pop() || path;
+
+    if (stats.isFile()) {
+      return {
+        path,
+        name,
+        type: 'file',
+        size: stats.size,
+        modifiedTime: stats.mtime,
+      };
+    }
+
+    const entries = await readdir(path, { withFileTypes: true });
+    const children = await Promise.all(
+      entries
+        .filter((entry) => !shouldIgnore(join(path, entry.name)))
+        .map(async (entry) => {
+          try {
+            const fullPath = join(path, entry.name);
+            return await getFileTree(fullPath);
+          } catch (error) {
+            console.warn(`Failed to process ${entry.name}:`, error);
+            return null;
+          }
+        }),
+    );
+
+    // 过滤掉处理失败的文件
+    const validChildren = children.filter(
+      (child): child is FileInfo | FolderInfo => child !== null,
+    );
+
     return {
       path,
       name,
-      type: 'file',
-      size: stats.size,
-      modifiedTime: stats.mtime,
+      type: 'dir',
+      children: validChildren,
     };
+  } catch (error) {
+    console.error('Failed to get file tree:', error);
+    return null;
   }
-
-  const entries = await readdir(path, { withFileTypes: true });
-  const children = await Promise.all(
-    entries.map(async (entry) => {
-      const fullPath = join(path, entry.name);
-      return getFileTree(fullPath);
-    }),
-  );
-
-  return {
-    path,
-    name,
-    type: 'dir',
-    children,
-  };
 }
 
 // 处理获取文件树请求
 ipcMain.handle('get-file-tree', async (_, path: string, comparePath?: string) => {
   try {
     const tree = await getFileTree(path);
+    if (!tree) {
+      throw new Error('Failed to get file tree');
+    }
 
     // 如果提供了比较路径，执行文件夹比较
     if (comparePath && tree.type === 'dir') {
       const compareTree = await getFileTree(comparePath);
-      if (compareTree.type === 'dir') {
+      if (compareTree && compareTree.type === 'dir') {
         await compareDirectories(tree, compareTree);
       }
     }
